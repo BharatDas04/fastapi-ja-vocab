@@ -1,15 +1,13 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from Model.vocab_database import BASE
+import os
 
-db_user: str = 'postgres'
-db_port: int = 5432
-db_host: str = 'localhost'
-db_password: str = 'test1234'
+uri: str = os.getenv("DATABASE_URL")
 
-uri: str = F'postgresql://{db_user}:{db_password}@{db_host}:{db_port}/ja_vocab'
-
-engine = create_engine(uri)
+engine = create_engine(uri,
+    pool_pre_ping=True,
+    pool_recycle=1800,)
 BASE.metadata.create_all(bind=engine)
 
 session = sessionmaker(
