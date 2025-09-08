@@ -20,6 +20,10 @@ def require_token(credentials: HTTPAuthorizationCredentials = Depends(security))
         )
     return True
 
+@vocab_route.get("/")
+def root():
+    return {"status": "ok"}
+
 @vocab_route.get("/healthz")
 def check_health():
     return {"status": "ok"}
