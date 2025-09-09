@@ -1,12 +1,12 @@
 import sys
 sys.path.append("./")
-from connection import db_session
+from sqlalchemy.orm import Session
 from Model.vocab_database import Vocab
 from Schemas.schemas import createVocab, editVocab
 from typing import Optional
 from sqlalchemy import or_
 
-def create_vocab(word: createVocab):
+def create_vocab(db_session: Session, word: createVocab):
     try:
         obj = word.model_dump()
         obj["owner_hint"] = "demo"
@@ -31,7 +31,7 @@ def create_vocab(word: createVocab):
     except Exception as e:
         return {"status": "Error", "message": str(e)} 
 
-def get_word(vocab_id: int):
+def get_word(db_session: Session, vocab_id: int):
     try:
         res = db_session.query(Vocab).filter(
             Vocab.vocab_id == vocab_id,
@@ -44,7 +44,7 @@ def get_word(vocab_id: int):
             "message": str(e)
         }
     
-def search_word(q: Optional[str] = None):
+def search_word(db_session: Session, q: Optional[str] = None):
     try:
         query = db_session.query(Vocab)
         
@@ -62,7 +62,6 @@ def search_word(q: Optional[str] = None):
 
         # if not present then return 10 recently added words
         res = db_session.query(Vocab).order_by(Vocab.added_at.desc()).limit(10).all()
-        db_session.commit()
         return res
 
     except Exception as e:
@@ -71,7 +70,7 @@ def search_word(q: Optional[str] = None):
             "message": str(e)
         }
     
-def delete_word(vocab_id: int):
+def delete_word(db_session: Session, vocab_id: int):
     try:
         res = db_session.query(Vocab).filter(Vocab.vocab_id == vocab_id).first()
         print(res)
@@ -87,7 +86,7 @@ def delete_word(vocab_id: int):
             "message": str(e)
         }
 
-def word_edit(doc: editVocab):
+def word_edit(db_session: Session, doc: editVocab):
     try:
         data = doc.model_dump()
         query = db_session.query(Vocab).filter(Vocab.vocab_id == data['vocab_id']).first()

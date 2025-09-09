@@ -5,6 +5,8 @@ from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from Auth.auth import create_demo_token ,verify_token
 from typing import List
+from connection import get_db
+from sqlalchemy.orm import Session
 
 security = HTTPBearer()
     
@@ -34,26 +36,30 @@ def demo_token():
     return {"access_token": token, "token_type": "bearer", "expires_in_minutes": 30}
 
 @vocab_route.post("/word", dependencies=[Depends(require_token)], response_model = WordAdded)
-def add_word(word: createVocab):
-    res = op.create_vocab(word)
+def add_word(word: createVocab, db: Session = Depends(get_db)):
+    res = op.create_vocab(db, word)
     if res is None:
         raise HTTPException(status_code=409, detail="Word already exists")
     return res
 
 @vocab_route.get("/words/{vocab_id}", response_model = wordResponse)
-def read_words(vocab_id: int):
-    res = op.get_word(vocab_id)
+def read_words(vocab_id: int, db: Session = Depends(get_db)):
+    res = op.get_word(db, vocab_id)
     if res is None:
         raise HTTPException(status_code=404, detail=f'No word with id: {vocab_id}')
     return res
 
 @vocab_route.get("/words", response_model = List[wordResponse])
-def list_words(q: str | None = None):
-    return op.search_word(q)
+def list_words(q: str | None = None, db: Session = Depends(get_db)):
+    res = op.search_word(db, q)
+    if not isinstance(res, list):
+        raise HTTPException(status_code=500, detail="Unexpected response from database")
+
+    return res
 
 @vocab_route.delete("/words/{vocab_id}", dependencies=[Depends(require_token)])
-def delete_word(vocab_id: int):
-    res = op.delete_word(vocab_id)
+def delete_word(vocab_id: int, db: Session = Depends(get_db)):
+    res = op.delete_word(db, vocab_id)
     if not res:
         raise HTTPException(status_code=404, detail=f"No word found with id {vocab_id}")
     return {
@@ -62,8 +68,8 @@ def delete_word(vocab_id: int):
     }
 
 @vocab_route.put("/words" , dependencies=[Depends(require_token)])
-def edit_word(doc: editVocab):
-    res = op.word_edit(doc)
+def edit_word(doc: editVocab, db: Session = Depends(get_db)):
+    res = op.word_edit(db, doc)
     if not res:
         raise HTTPException(status_code=400, detail="Wrong Input")
     return res
